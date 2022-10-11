@@ -1,14 +1,14 @@
-# PADE + Mosaik example integration
+# PADE + Mosaik 3.0 example integration
 
-This is a modification of Mosaik standard example to demonstrate the integration of PADE with Mosaik.
+This is a modification of [PADE/Mosaik's Demo](https://github.com/grei-ufc/mosaik-demo-wesaac-2019) to implement it with Mosaik 3.0.
 
-Firts install the packages dependencies:
+First, install the package's dependencies:
 
 ```
 pip install -r requirements.txt
 ```
 
-Then install PADE, clonning from [github repository](https://github.com/grei-ufc/pade.git) and typing in terminal:
+Then, install PADE, clonning it from its [github repository](https://github.com/grei-ufc/pade.git) and typing in terminal:
 
 ```
 python setup.py install
