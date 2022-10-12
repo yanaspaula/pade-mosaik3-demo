@@ -76,8 +76,9 @@ def create_scenario(world):
         device_agent_sim = world.start(name,
                                        eid_prefix='DeviceAgent_',
                                        prosumer_ref=i,
-                                       start=START,
-                                       step_size=1 * 60) # o step de tempo é dado em segundos
+                                       start=START
+                                       #, step_size=1 * 60) # o step de tempo é dado em segundos # Mosaik 2.0
+                                        ) # Mosaik 3.0
         device_agent_sim_dict[i] = device_agent_sim
 
 

@@ -14,6 +14,7 @@ import pickle
 import random
 
 MOSAIK_MODELS = {
+    'type': 'event-based', # Mosaik 3.0: Component's type
     'api_version': '2.2',
     'models': {
         'DeviceAgent': {
@@ -36,16 +37,17 @@ class MosaikSim(MosaikCon):
                               'buffering_device': [],
                               'user_action_device': [],
                               'storage_device': []}
-        self.P = 100.0
+        self.P = 100.0      # Dúvida: o que é isso?
 
-    def init(self, sid, eid_prefix, prosumer_ref, start, step_size):
+    # def init(self, sid, eid_prefix, prosumer_ref, start, step_size): # Mosaik 2.0
+    def init(self, sid, time_resolution, eid_prefix, prosumer_ref, start): # Mosaik 3.0: Time resolution
         # self.sid = sid
         self.prosumer_ref = 'ProsumerSim0-0.Prosumer_{}'.format(prosumer_ref)
         self.node_id = prosumer_ref
         self.eid_prefix = eid_prefix
         self.eid = '{}-{}'.format(self.eid_prefix, prosumer_ref)
         self.start = start
-        self.step_size = step_size
+        # self.step_size = step_size # Mosaik 2.0
         return MOSAIK_MODELS
 
 
@@ -57,7 +59,8 @@ class MosaikSim(MosaikCon):
             {'eid': self.eid, 'type': 'DeviceAgent'})
         return self.entities
 
-    def step(self, time, inputs):
+    # def step(self, time, inputs): # Mosaik 2.0
+    def step(self, time, inputs, max_advance): # Mosaik 3.0: Max_advance time
         '''
         {'DeviceAgent_10': 
             {'device_status': 
@@ -102,7 +105,8 @@ class MosaikSim(MosaikCon):
         if time % (1 * 24 * 60 * 60) == 0 and time != 0: # a cada dois dias
             pass
 
-        return time + self.step_size
+        #return time + self.step_size # Mosaik 2.0
+        return None # Mosaik 3.0
 
     def handle_set_data(self):
         pass
@@ -126,11 +130,11 @@ class DeviceAgent(Agent):
         self.dm_curve = np.zeros(50)
         self.clear_price = None
 
-        # open the config.json file with some important informations about
-        # the device characteristics, read and store this information.
+        # opens config.json file with some important informations about
+        # the device characteristics, reads and stores this information.
         config = json.load(open('config.json'))
 
-        '''This part of code create a dictionary like this:
+        '''This part of code creates a dictionary like this:
 
             {'stochastic_gen': {'power': 5.41, 'status': None, 'demand': None},
             'shiftable_load': {'power': 2.02, 'status': None, 'demand': None},
