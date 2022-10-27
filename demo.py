@@ -52,6 +52,8 @@ for i in agent_names:
     sim_config[name] = {'connect': 'localhost:' + str(port)}
     port += 1
 
+#TODO: criar master_agent
+sim_config['MasterAgentSim0'] = {'connect' : 'localhost' + str(port)}
 
 def main():
     random.seed(23)
@@ -81,6 +83,12 @@ def create_scenario(world):
                                        step_size=1 * 60) # o step de tempo é dado em segundos
         device_agent_sim_dict[i] = device_agent_sim
 
+    #TODO: iniciar master_agent
+    master_agent_sim = world.start(name,
+                                       eid_prefix='MasterAgent_',
+                                       prosumer_ref=0,
+                                       start=START,
+                                       step_size=1 * 60) # o step de tempo é dado em segundos
 
     # Instantiate models
     grid = pypower.Grid(gridfile=GRID_FILE).children
@@ -90,6 +98,9 @@ def create_scenario(world):
     pvs = pvsim.PV.create(PV_QTD)
 
     device_agents = [i.DeviceAgent.create(1)[0] for i in device_agent_sim_dict.values()]
+    
+    #TODO: 
+    master_agent = master_agent_sim.MasterAgent.create(1)
 
     # Connect entities
     connect_buildings_to_grid(world, houses, grid)
@@ -101,6 +112,9 @@ def create_scenario(world):
         world.connect(pv, buses[i], 'P')
         world.connect(pv, device_agents[i], 'P')
         world.connect(device_agents[i], buses[i], 'P')
+
+        #TODO: conectar master_agent a agentes
+        world.connect(device_agents[i], master_agent) # conecta agentes a master_agent
     
     # connect_buildings_to_agents(world, houses, device_agents)
 
@@ -178,6 +192,8 @@ def create_scenario(world):
             'max': 0,
         },
     })
+
+    #TODO: conectar master_agent ao world (Dúvida?)
 
 
 def connect_buildings_to_grid(world, houses, grid):
