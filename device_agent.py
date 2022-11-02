@@ -1,7 +1,9 @@
-#!coding=utf-8
-# Hello world in PADE!
-#
-# Criado por Lucas S Melo em 21 de julho de 2015 - Fortaleza, Ceará - Brasil
+# device_agent.py
+"""
+Device agent that applies a normal function from 
+an active power (P) obtained from another simulator.
+
+"""
 
 from pade.misc.utility import display_message
 from pade.core.agent import Agent
@@ -86,7 +88,7 @@ class MosaikSim(MosaikCon):
                 P = attrs.get('P', {})
                 for prosumer_eid, P_ in P.items():
                     pass
-                    self.P = P_ * 0.1
+                    self.P = P_ * 0.1 # TODO: criar função normal
                     # print(P_)
             # =================================================
             # envio de comandos para os dispositivos modelados

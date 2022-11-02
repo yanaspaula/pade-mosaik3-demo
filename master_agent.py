@@ -1,7 +1,8 @@
-#!coding=utf-8
-# Master Agent that controls device_agents
-#
-# Criado por Lucas S Melo em 21 de julho de 2015 - Fortaleza, Ceará - Brasil
+# master_agent.py
+"""""
+Master agent that controls PADE Device Agents.
+
+"""
 
 from pade.misc.utility import display_message
 from pade.core.agent import Agent
@@ -19,9 +20,9 @@ MOSAIK_MODELS = {
     'models': {
         'MasterAgent': {
             'public': True,
-            'params': [],
-            'attrs': ['P', 'node_id'],  #TODO: ajustar configuração do master_agent
-            'trigger': ['P'],
+            'params': [],   #  params is a list of parameter names that can be passed to the model when creating it. 
+            'attrs': ['P_in', 'P_out', 'node_id'],  #TODO: ajustar configuração do master_agent # attrs is a list of attribute names that can be accessed (reading or writing).
+            # 'trigger': ['P'],   # trigger is a list of attribute names that cause the simulator to be stepped when another simulator provides output which is connected to one of those.
         },
     },
 }
@@ -31,6 +32,11 @@ class MosaikSim(MosaikCon):
 
     def __init__(self, agent):
         super(MosaikSim, self).__init__(MOSAIK_MODELS, agent)
+        self.master_sim_prefix = 'MasterSim0-0.Master_'
+        self.data = {}
+        self.cache = {} # armazena último valor obtido pelo Device Agent para definir se haverá limitação
+        self.time = 0
+        """
         self.prosumer_sim_prefix = 'ProsumerSim0-0.Prosumer_'
         self.prosumer_data = {'stochastic_gen': [],
                               'freely_control_gen': [],
@@ -38,17 +44,25 @@ class MosaikSim(MosaikCon):
                               'buffering_device': [],
                               'user_action_device': [],
                               'storage_device': []}
-        self.P = 100.0
+        self.P = 100.0 # Potência ativa
+        """        
 
-    def init(self, sid, time_resolution, eid_prefix, prosumer_ref, start, step_size):
+    # def init(self, sid, time_resolution, eid_prefix, master_ref):
+    #    self.master_ref = 'MasterSim0-0.Master_{}'.format(master_ref)
+    #    self.node_id = master_ref
+    #    self.eid_prefix = eid_prefix        
+    #    return MOSAIK_MODELS
+        """
+        def init(self, sid, time_resolution, eid_prefix, master_ref, start, step_size):
         # self.sid = sid
-        self.prosumer_ref = 'ProsumerSim0-0.Prosumer_{}'.format(prosumer_ref)
-        self.node_id = prosumer_ref
+        self.prosumer_ref = 'ProsumerSim0-0.Prosumer_{}'.format(prosumer_ref) # não preciso, pois só haverá 1 master agent
+        self.node_id = prosumer_ref # não preciso, pois o master_agent não estará associado a cada um dos nós
         self.eid_prefix = eid_prefix
         self.eid = '{}-{}'.format(self.eid_prefix, prosumer_ref)
         self.start = start
         self.step_size = step_size
         return MOSAIK_MODELS
+        """
 
 
     def create(self, num, model):
@@ -56,7 +70,7 @@ class MosaikSim(MosaikCon):
         # self.eid = '{}0'.format(self.eid_prefix)
         self.entities.append(
             #{'eid': self.sim_id + '.' + str(i), 'type': model, 'rel': []})
-            {'eid': self.eid, 'type': 'DeviceAgent'})
+            {'eid': self.eid, 'type': 'MasterAgent'})
         return self.entities
 
     def step(self, time, inputs, max_advance):
@@ -119,10 +133,13 @@ class MosaikSim(MosaikCon):
                 data[eid][attr] = getattr(self, attr)
         return data
 
+"""
+Classe de inicialização dos agentes PADE
 
-class DeviceAgent(Agent):
+"""
+class MasterAgent(Agent):
     def __init__(self, aid, node_id):
-        super(DeviceAgent, self).__init__(aid=aid, debug=False)
+        super(MasterAgent, self).__init__(aid=aid, debug=False)
         self.node_id = node_id
         self.mosaik_sim = MosaikSim(self)
         self.dm_curve = np.zeros(50)

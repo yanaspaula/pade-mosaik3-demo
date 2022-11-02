@@ -52,8 +52,8 @@ for i in agent_names:
     sim_config[name] = {'connect': 'localhost:' + str(port)}
     port += 1
 
-#TODO: criar master_agent
-sim_config['MasterAgentSim0'] = {'connect' : 'localhost' + str(port)}
+#TODO: criar master_agent 
+sim_config['MasterAgentSim0'] = {'connect' : 'localhost' + str(port)} #TODO: escolher porta específica para MasterAgent
 
 def main():
     random.seed(23)
@@ -83,12 +83,8 @@ def create_scenario(world):
                                        step_size=1 * 60) # o step de tempo é dado em segundos
         device_agent_sim_dict[i] = device_agent_sim
 
-    #TODO: iniciar master_agent
-    master_agent_sim = world.start(name,
-                                       eid_prefix='MasterAgent_',
-                                       prosumer_ref=0,
-                                       start=START,
-                                       step_size=1 * 60) # o step de tempo é dado em segundos
+    #TODO: iniciar master_agent simulation
+    master_agent_sim = world.start('MasterAgentSim0') # Dúvida: preciso passar informação dos nós dos DeviceAgents para conseguir acessá-los? Dicionário?
 
     # Instantiate models
     grid = pypower.Grid(gridfile=GRID_FILE).children
@@ -99,7 +95,7 @@ def create_scenario(world):
 
     device_agents = [i.DeviceAgent.create(1)[0] for i in device_agent_sim_dict.values()]
     
-    #TODO: 
+    #TODO: instanciar master_agent
     master_agent = master_agent_sim.MasterAgent.create(1)
 
     # Connect entities
@@ -112,9 +108,10 @@ def create_scenario(world):
         world.connect(pv, buses[i], 'P')
         world.connect(pv, device_agents[i], 'P')
         world.connect(device_agents[i], buses[i], 'P')
-
+        #TODO: compreender onde implementar o parâmetro (weak=true) -> Dúvida
         #TODO: conectar master_agent a agentes
-        world.connect(device_agents[i], master_agent) # conecta agentes a master_agent
+        world.connect(device_agents[i], master_agent, ('P', 'P_in')) # conecta agentes a master_agent
+        world.connect(master_agent, device_agents[i], ('P_out', 'P')) # conecta master_agent a agentes
     
     # connect_buildings_to_agents(world, houses, device_agents)
 
@@ -193,7 +190,7 @@ def create_scenario(world):
         },
     })
 
-    #TODO: conectar master_agent ao world (Dúvida?)
+    #TODO: conectar master_agent? -> Dúvida (acho que não)
 
 
 def connect_buildings_to_grid(world, houses, grid):
