@@ -1,4 +1,4 @@
-import itertools
+# demo.py
 import random
 import json
 
@@ -52,8 +52,7 @@ for i in agent_names:
     sim_config[name] = {'connect': 'localhost:' + str(port)}
     port += 1
 
-#TODO: criar master_agent 
-sim_config['MasterAgentSim0'] = {'connect' : 'localhost' + str(port)} #TODO: escolher porta específica para MasterAgent
+sim_config['MasterAgentSim'] = {'connect' : 'localhost:2000'}
 
 def main():
     random.seed(23)
@@ -68,6 +67,11 @@ def create_scenario(world):
     pypower = world.start('PyPower', step_size=15*60)
     hhsim = world.start('HouseholdSim')
     pvsim = world.start('CSV', sim_start=START, datafile=PV_DATA)
+    master_agent_sim = world.start( 'MasterAgentSim', #TODO: ajustar init() do MasterAgent
+                                    eid_prefix='MasterAgent_',
+                                    prosumer_ref=0,
+                                    start=START,
+                                    step_size=1 * 60)
 
     # =======================================
     # inicializa as classes que irão representar
@@ -83,20 +87,14 @@ def create_scenario(world):
                                        step_size=1 * 60) # o step de tempo é dado em segundos
         device_agent_sim_dict[i] = device_agent_sim
 
-    #TODO: iniciar master_agent simulation
-    master_agent_sim = world.start('MasterAgentSim0') # Dúvida: preciso passar informação dos nós dos DeviceAgents para conseguir acessá-los? Dicionário?
-
     # Instantiate models
     grid = pypower.Grid(gridfile=GRID_FILE).children
     houses = hhsim.ResidentialLoads(sim_start=START,
                                     profile_file=PROFILE_FILE,
                                     grid_name=GRID_NAME).children
     pvs = pvsim.PV.create(PV_QTD)
-
-    device_agents = [i.DeviceAgent.create(1)[0] for i in device_agent_sim_dict.values()]
-    
-    #TODO: instanciar master_agent
     master_agent = master_agent_sim.MasterAgent.create(1)
+    device_agents = [i.DeviceAgent.create(1)[0] for i in device_agent_sim_dict.values()]
 
     # Connect entities
     connect_buildings_to_grid(world, houses, grid)
@@ -109,9 +107,8 @@ def create_scenario(world):
         world.connect(pv, device_agents[i], 'P')
         world.connect(device_agents[i], buses[i], 'P')
         #TODO: compreender onde implementar o parâmetro (weak=true) -> Dúvida
-        #TODO: conectar master_agent a agentes
-        world.connect(device_agents[i], master_agent, ('P', 'P_in')) # conecta agentes a master_agent
-        world.connect(master_agent, device_agents[i], ('P_out', 'P')) # conecta master_agent a agentes
+        world.connect(device_agents[i], master_agent[0], ('P', 'P_in')) # conecta agentes a master_agent
+        world.connect(master_agent[0], device_agents[i], ('P_out', 'P'), weak=True) # conecta master_agent a agentes
     
     # connect_buildings_to_agents(world, houses, device_agents)
 
@@ -189,9 +186,6 @@ def create_scenario(world):
             'max': 0,
         },
     })
-
-    #TODO: conectar master_agent? -> Dúvida (acho que não)
-
 
 def connect_buildings_to_grid(world, houses, grid):
     buses = filter(lambda e: e.type == 'PQBus', grid)

@@ -1,5 +1,6 @@
 from pade.acl.aid import AID
 from device_agent import DeviceAgent
+from master_agent import MasterAgent
 from pade.misc.utility import start_loop
 import sys
 import json
@@ -18,6 +19,11 @@ if __name__ == '__main__':
         device_agent.ams = {'name': 'localhost', 'port': 8001}
         port += 1
         agents.append(device_agent)
+
+    # Starts MasterAgent
+    master_agent = MasterAgent(aid = AID('master_agent@localhost:2000'))
+    master_agent.ams = {'name': 'localhost', 'port': 8001}
+    agents.append(master_agent)
 
     # concentrator_agent = ConcentratorAgent(AID(name='concentrator@localhost:' + str(port)))
     # agents.append(concentrator_agent)

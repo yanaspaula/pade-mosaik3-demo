@@ -8,117 +8,64 @@ from pade.misc.utility import display_message
 from pade.core.agent import Agent
 from pade.drivers.mosaik_driver import MosaikCon
 
-import pandas as pd
-import numpy as np
-import json
-import pickle
-import random
-
 MOSAIK_MODELS = {
     'api_version': '3.0.2',
     'type': 'event-based',
     'models': {
         'MasterAgent': {
             'public': True,
-            'params': [],   #  params is a list of parameter names that can be passed to the model when creating it. 
-            'attrs': ['P_in', 'P_out', 'node_id'],  #TODO: ajustar configuração do master_agent # attrs is a list of attribute names that can be accessed (reading or writing).
+            'params': [],
+            'attrs': ['P_in', 'P_out', 'node_id'],  #TODO: ajustar configuração do master_agent - Dúvida: retirar node_id?
             # 'trigger': ['P'],   # trigger is a list of attribute names that cause the simulator to be stepped when another simulator provides output which is connected to one of those.
         },
     },
 }
 
-#TODO: ajustar classe do master_agent
 class MosaikSim(MosaikCon):
-
     def __init__(self, agent):
         super(MosaikSim, self).__init__(MOSAIK_MODELS, agent)
-        self.master_sim_prefix = 'MasterSim0-0.Master_'
+        self.master_sim_prefix = 'MasterSim0-0.MasterAgent_'
+        self.agents = []
         self.data = {}
-        self.cache = {} # armazena último valor obtido pelo Device Agent para definir se haverá limitação
-        self.time = 0
-        """
-        self.prosumer_sim_prefix = 'ProsumerSim0-0.Prosumer_'
-        self.prosumer_data = {'stochastic_gen': [],
-                              'freely_control_gen': [],
-                              'shiftable_load': [],
-                              'buffering_device': [],
-                              'user_action_device': [],
-                              'storage_device': []}
-        self.P = 100.0 # Potência ativa
-        """        
+        self.cache = {} # armazena último valor obtido pelo DeviceAgent
+        self.time = 0    # Dúvida: já está definido em MosaikSim, preciso definir novamente?  
 
-    # def init(self, sid, time_resolution, eid_prefix, master_ref):
-    #    self.master_ref = 'MasterSim0-0.Master_{}'.format(master_ref)
-    #    self.node_id = master_ref
-    #    self.eid_prefix = eid_prefix        
-    #    return MOSAIK_MODELS
-        """
-        def init(self, sid, time_resolution, eid_prefix, master_ref, start, step_size):
+    #TODO: ajustar init() do MasterAgent - deletar
+    def init(self, sid, time_resolution, eid_prefix, prosumer_ref, start, step_size):
         # self.sid = sid
-        self.prosumer_ref = 'ProsumerSim0-0.Prosumer_{}'.format(prosumer_ref) # não preciso, pois só haverá 1 master agent
-        self.node_id = prosumer_ref # não preciso, pois o master_agent não estará associado a cada um dos nós
+        self.prosumer_ref = 'MasterSim0-0.MasterAgent_{}'.format(prosumer_ref)
+        self.node_id = prosumer_ref
         self.eid_prefix = eid_prefix
         self.eid = '{}-{}'.format(self.eid_prefix, prosumer_ref)
         self.start = start
         self.step_size = step_size
         return MOSAIK_MODELS
-        """
 
-
-    def create(self, num, model):
+    def create(self, num, model='MasterAgent'):
+        n_agents = len(self.agents) # already created agents
         self.entities = list()
-        # self.eid = '{}0'.format(self.eid_prefix)
-        self.entities.append(
-            #{'eid': self.sim_id + '.' + str(i), 'type': model, 'rel': []})
-            {'eid': self.eid, 'type': 'MasterAgent'})
+        for i in range(n_agents, n_agents + num):
+            self.entities.append(
+                {'eid': self.eid, 'type': model})
         return self.entities
 
     def step(self, time, inputs, max_advance):
-        '''
-        {'DeviceAgent_10': 
-            {'device_status': 
-                {'ProsumerSim0-0.Prosumer_10': 
-                    {'stochastic_gen': {'status': 0, 'demand': 0.0, 'forecast': 0.0},
-                     'freely_control_gen': {'status': 0, 'demand': 0.0, 'forecast': 0.0},
-                     'shiftable_load': {'status': 0, 'demand': 0.0, 'forecast': 0.0},
-                     'buffering_device': {'status': 0, 'demand': 0.0, 'forecast': 0.0},
-                     'user_action_device': {'status': 1, 'demand': 0.0649, 'forecast': 0.0},
-                     'storage_device': {'status': 1, 'demand': 0.0, 'forecast': 0.0}
-                    }
-                }
-            }
-        }
-        '''
-        # print(inputs)
-        if time % (1 * 60) == 0 and time != 0: # a cada 5 min
-            # =================================================
-            # armazenamento dos parâmetros vindos do Mosaik
-            # No momento apenas: staus e demanda.
-            # =================================================
+        print('inputs: {}'.format(inputs))
+        self.time = time
+        data = {}
+        for agent_eid, attrs in inputs.items():
+            values_dict = attrs.get('P_in', {})
+            for key, value in values_dict.items():
+                self.cache[key] = value
+                print('key: {}'.format(key))
+                print('value: {}'.format(value))
+            if(value >= 200):
+                data[agent_eid] = {'P_out': 200}
 
-            for eid, attrs in inputs.items():
-                P = attrs.get('P', {})
-                for prosumer_eid, P_ in P.items():
-                    pass
-                    self.P = P_ * 0.1
-                    # print(P_)
-            # =================================================
-            # envio de comandos para os dispositivos modelados
-            # no Mosaik
-            # =================================================
-
-            # from_ = self.eid
-            # to_ = self.prosumer_ref
-            # data = {from_: {to_: {'commands': self.agent.device_dict}}}
-            # yield self.set_data_async(data)
-            
-        ###################### FIX #############################
-
-        # armazena os dados da simulação
-        if time % (1 * 24 * 60 * 60) == 0 and time != 0: # a cada dois dias
-            pass
-
-        return time + self.step_size
+        self.data = data        
+        print('cache: {}'.format(self.cache))
+        #return time + self.step_size
+        return None # Mosaik 3.0
 
     def handle_set_data(self):
         pass
@@ -128,7 +75,7 @@ class MosaikSim(MosaikCon):
         for eid, attrs in outputs.items():
             data[eid] = {}
             for attr in attrs:
-                if attr not in MOSAIK_MODELS['models']['DeviceAgent']['attrs']:
+                if attr not in MOSAIK_MODELS['models']['MasterAgent']['attrs']:
                     raise ValueError('Unknown output attribute: {}'.format(attr))
                 data[eid][attr] = getattr(self, attr)
         return data
@@ -138,16 +85,16 @@ Classe de inicialização dos agentes PADE
 
 """
 class MasterAgent(Agent):
-    def __init__(self, aid, node_id):
+    def __init__(self, aid):
         super(MasterAgent, self).__init__(aid=aid, debug=False)
-        self.node_id = node_id
+        #self.node_id = node_id
         self.mosaik_sim = MosaikSim(self)
-        self.dm_curve = np.zeros(50)
-        self.clear_price = None
+        # self.dm_curve = np.zeros(50)
+        # self.clear_price = None
 
         # open the config.json file with some important informations about
         # the device characteristics, read and store this information.
-        config = json.load(open('config.json'))
+        # config = json.load(open('config.json'))
 
         '''This part of code create a dictionary like this:
 
@@ -156,12 +103,14 @@ class MasterAgent(Agent):
             'buffering_device': {'power': 2.1, 'status': None, 'demand': None},
             'user_action_device': {'power': 5.55, 'status': None, 'demand': None}}
 
-        '''
+        
         self.device_dict = dict()
         for device_type, device_info in config['devices'].items():
             if str(self.node_id) in device_info['powers'].keys():
                 self.device_dict[device_type] = {'power': device_info['powers'][str(self.node_id)],
                                                  'status': None,
                                                  'demand': None}
-        # print(self.aid.name)
-        # print(self.device_dict)
+        '''
+        #print(self.aid.name)
+        #print('================== MASTER AGENT ATIVO')
+        #print(self.device_dict)
